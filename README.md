@@ -6,10 +6,11 @@ Convert `.mkv` and `.avi` video files to QuickTime-compatible `.mp4` format with
 
 - **QuickTime Compatible**: H.264 video, AAC audio, proper pixel format
 - **French Audio Priority**: Automatically detects and sets French audio as default
+- **All Languages Preserved**: All audio tracks and subtitles are included with proper language labels, selectable in QuickTime Player menu (Présentation → Langues / Sous-titres)
 - **Quality Preservation**: Configurable CRF settings for optimal quality
 - **Batch Processing**: Convert entire directories of videos
 - **Progress Tracking**: Real-time conversion progress with ETA
-- **Subtitle Support**: Includes French subtitles when available
+- **Subtitle Support**: Includes all subtitles with French prioritized when available
 - **Error Handling**: Comprehensive validation and error reporting
 - **Fast Start**: MP4 files optimized for streaming
 
@@ -141,14 +142,17 @@ Edit [config.py](config.py) to customize default settings:
 
 ## How It Works
 
-### French Audio Priority
+### French Audio Priority with All Languages Available
 
 The converter automatically:
-1. Probes the input file to detect all audio tracks
-2. Identifies French audio tracks (language codes: `fra`, `fre`, `fr`)
-3. Reorders audio streams to place French first
+1. Probes the input file to detect all audio tracks and subtitles
+2. Identifies French audio/subtitle tracks (language codes: `fra`, `fre`, `fr`)
+3. Reorders audio streams to place French first (same for subtitles)
 4. Sets the French track as default with proper disposition flags
-5. Includes all other audio tracks as alternatives
+5. **Includes ALL other audio tracks and subtitles** with their original language metadata preserved
+6. All tracks remain selectable in QuickTime Player via **Présentation → Langues** (audio) or **Présentation → Sous-titres** (subtitles)
+
+**Important**: French is set as the default track, but you can easily switch to any other available language using QuickTime's menu. All language labels are preserved from the original file.
 
 ### QuickTime Compatibility
 

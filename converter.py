@@ -82,35 +82,67 @@ class VideoConverter:
         if audio_streams:
             audio_mapping = utils.get_audio_mapping(audio_streams, self.logger)
 
-            for audio_idx in audio_mapping:
-                cmd.extend(['-map', f'0:a:{audio_idx}'])
+            for output_idx, input_idx in enumerate(audio_mapping):
+                cmd.extend(['-map', f'0:a:{input_idx}'])
 
             # Set French audio as default (first audio track after mapping)
             cmd.extend(['-disposition:a:0', 'default'])
 
-            # Set language metadata for first audio track to French
-            cmd.extend(['-metadata:s:a:0', 'language=fra'])
+            # Preserve language metadata for all audio tracks
+            for output_idx, input_idx in enumerate(audio_mapping):
+                original_stream = audio_streams[input_idx]
+                tags = original_stream.get('tags', {})
+                language = tags.get('language', '')
+                title = tags.get('title', '')
+
+                # Set language metadata if available
+                if language:
+                    cmd.extend([f'-metadata:s:a:{output_idx}', f'language={language}'])
+                    self.logger.debug(f"Audio track {output_idx}: language={language}")
+
+                # Set title metadata if available
+                if title:
+                    cmd.extend([f'-metadata:s:a:{output_idx}', f'title={title}'])
+                    self.logger.debug(f"Audio track {output_idx}: title={title}")
 
         # Map subtitles if enabled
         if config.INCLUDE_SUBTITLES and subtitle_streams:
             french_sub_idx = utils.find_french_subtitle_stream(subtitle_streams, self.logger)
 
+            # Build subtitle mapping (French first if available)
+            subtitle_mapping = []
             if french_sub_idx is not None:
-                # Map French subtitle first
-                cmd.extend(['-map', f'0:s:{french_sub_idx}'])
-                cmd.extend(['-c:s', config.SUBTITLE_CODEC])
-                cmd.extend(['-disposition:s:0', 'default'])
-                cmd.extend(['-metadata:s:s:0', 'language=fra'])
-
-                # Map other subtitles
+                subtitle_mapping.append(french_sub_idx)
                 for idx in range(len(subtitle_streams)):
                     if idx != french_sub_idx:
-                        cmd.extend(['-map', f'0:s:{idx}'])
-                        cmd.extend(['-c:s', config.SUBTITLE_CODEC])
+                        subtitle_mapping.append(idx)
             else:
-                # Map all subtitles in original order
-                cmd.extend(['-map', '0:s?'])
+                subtitle_mapping = list(range(len(subtitle_streams)))
+
+            # Map all subtitle streams
+            for output_idx, input_idx in enumerate(subtitle_mapping):
+                cmd.extend(['-map', f'0:s:{input_idx}'])
                 cmd.extend(['-c:s', config.SUBTITLE_CODEC])
+
+                # Set first subtitle as default
+                if output_idx == 0:
+                    cmd.extend(['-disposition:s:0', 'default'])
+
+                # Preserve language metadata for all subtitle tracks
+                original_stream = subtitle_streams[input_idx]
+                tags = original_stream.get('tags', {})
+                language = tags.get('language', '')
+                title = tags.get('title', '')
+
+                # Set language metadata if available
+                if language:
+                    cmd.extend([f'-metadata:s:s:{output_idx}', f'language={language}'])
+                    self.logger.debug(f"Subtitle track {output_idx}: language={language}")
+
+                # Set title metadata if available
+                if title:
+                    cmd.extend([f'-metadata:s:s:{output_idx}', f'title={title}'])
+                    self.logger.debug(f"Subtitle track {output_idx}: title={title}")
 
         # MP4 optimization flags
         cmd.extend(['-movflags', config.MOVFLAGS])
