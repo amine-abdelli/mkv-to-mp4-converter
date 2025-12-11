@@ -6,13 +6,14 @@ Convert `.mkv` and `.avi` video files to QuickTime-compatible `.mp4` format with
 
 - **QuickTime Compatible**: H.264 video, AAC audio, proper pixel format
 - **French Audio Priority**: Automatically detects and sets French audio as default
-- **All Languages Preserved**: All audio tracks and subtitles are included with proper language labels, selectable in QuickTime Player menu (Présentation → Langues / Sous-titres)
+- **All Languages Preserved**: All audio tracks and subtitles are included with proper language labels, selectable in QuickTime Player (Présentation → Langues / Sous-titres)
 - **Quality Preservation**: Configurable CRF settings for optimal quality
 - **Batch Processing**: Convert entire directories of videos
 - **Progress Tracking**: Real-time conversion progress with ETA
 - **Subtitle Support**: Includes all subtitles with French prioritized when available
 - **Error Handling**: Comprehensive validation and error reporting
 - **Fast Start**: MP4 files optimized for streaming
+- **Stream Verification**: Included script to check all audio and subtitle tracks
 
 ## Requirements
 
@@ -49,35 +50,54 @@ pip install -r requirements.txt
 
 ## Usage
 
+### Quick Start
+
+The easiest way to use the converter is with the included wrapper script:
+
+**Convert all videos in the input folder:**
+```bash
+./convert.sh --input-dir input
+```
+
+**Convert a single file:**
+```bash
+./convert.sh --input video.mkv
+```
+
 ### Single File Conversion
 
 Convert a single video file:
+```bash
+./convert.sh --input video.mkv
+```
+
+Or call Python directly:
 ```bash
 python converter.py --input video.mkv
 ```
 
 Specify output path:
 ```bash
-python converter.py --input video.mkv --output converted.mp4
+./convert.sh --input video.mkv --output converted.mp4
 ```
 
 ### Batch Conversion
 
 Convert all videos in a directory:
 ```bash
-python converter.py --input-dir ./input --output-dir ./output
+./convert.sh --input-dir input --output-dir output
 ```
 
 Place your video files in the `input/` directory and run:
 ```bash
-python converter.py --input-dir input
+./convert.sh --input-dir input
 ```
 
 ### Quality Settings
 
 Use a quality preset:
 ```bash
-python converter.py --input video.mkv --quality high
+./convert.sh --input video.mkv --quality high
 ```
 
 Available presets:
@@ -87,25 +107,37 @@ Available presets:
 
 Custom CRF value (18-28, lower = better quality):
 ```bash
-python converter.py --input video.mkv --crf 20
+./convert.sh --input video.mkv --crf 20
 ```
 
 Custom encoding preset:
 ```bash
-python converter.py --input video.mkv --preset faster
+./convert.sh --input video.mkv --preset faster
 ```
 
 ### Logging
 
 Enable verbose output:
 ```bash
-python converter.py --input video.mkv --verbose
+./convert.sh --input video.mkv --verbose
 ```
 
 Save logs to file:
 ```bash
-python converter.py --input video.mkv --log-file conversion.log
+./convert.sh --input video.mkv --log-file conversion.log
 ```
+
+### Verify Converted Files
+
+Check all audio and subtitle streams in a converted file:
+```bash
+./check_streams.sh output/video_converted.mp4
+```
+
+This will show:
+- All video streams with codec and resolution
+- All audio streams with language codes and default track
+- All subtitle streams with language codes and default track
 
 ## Command-Line Options
 
@@ -175,46 +207,48 @@ Ensures compatibility by using:
 ### Basic Conversion
 ```bash
 # Convert movie.mkv to output/movie_converted.mp4
-python converter.py --input movie.mkv
+./convert.sh --input movie.mkv
 
-# Verify French audio is default
-ffprobe -v quiet -select_streams a:0 -show_entries stream_tags=language output/movie_converted.mp4
+# Verify all streams in the converted file
+./check_streams.sh output/movie_converted.mp4
 ```
 
 ### High-Quality Conversion
 ```bash
 # Convert with maximum quality
-python converter.py --input video.mkv --quality high
+./convert.sh --input video.mkv --quality high
 ```
 
 ### Batch Conversion with Logging
 ```bash
 # Convert all videos in input/ directory with detailed logs
-python converter.py --input-dir input --output-dir output --verbose --log-file logs/conversion.log
+./convert.sh --input-dir input --output-dir output --verbose --log-file logs/conversion.log
 ```
 
 ### Custom Settings
 ```bash
 # Custom CRF and faster encoding
-python converter.py --input video.mkv --crf 20 --preset faster
+./convert.sh --input video.mkv --crf 20 --preset faster
 ```
 
 ## Validation
 
-After conversion, validate the output:
+After conversion, use the included verification script:
 
-**Check file information:**
+**Check all streams (recommended):**
 ```bash
+./check_streams.sh output/video_converted.mp4
+```
+
+**Or use FFprobe directly:**
+```bash
+# Check file information
 ffprobe -v quiet -print_format json -show_format -show_streams output/video_converted.mp4
-```
 
-**Verify default audio track:**
-```bash
+# Verify default audio track
 ffprobe -v quiet -select_streams a:0 -show_entries stream=index,codec_name:stream_tags=language output/video_converted.mp4
-```
 
-**Test QuickTime compatibility:**
-```bash
+# Test QuickTime compatibility
 ffmpeg -v error -i output/video_converted.mp4 -f null -
 ```
 
@@ -223,19 +257,26 @@ ffmpeg -v error -i output/video_converted.mp4 -f null -
 open -a "QuickTime Player" output/video_converted.mp4
 ```
 
+**Access language selection in QuickTime:**
+- **Présentation** → **Langues** (switch audio tracks)
+- **Présentation** → **Sous-titres** (switch subtitle tracks)
+
 ## Project Structure
 
 ```
 video-converter/
-├── converter.py          # Main conversion script
+├── convert.sh           # Convenience wrapper script
+├── converter.py         # Main conversion script
 ├── config.py            # Configuration settings
 ├── utils.py             # Helper functions
+├── check_streams.sh     # Stream verification script
 ├── requirements.txt     # Python dependencies
-├── README.md           # This file
+├── README.md            # This file
 ├── VIDEO_CONVERTER_PROJECT.md  # Setup instructions
-├── input/              # Place input videos here
-├── output/             # Converted videos appear here
-└── logs/               # Log files
+├── input/               # Place input videos here
+├── output/              # Converted videos appear here
+├── logs/                # Log files
+└── venv/                # Python virtual environment
 ```
 
 ## Troubleshooting
@@ -250,12 +291,16 @@ ffmpeg -version
 ### Issue: QuickTime won't play the file
 **Solution**: The converter already uses the correct settings (yuv420p, faststart). If issues persist, try:
 ```bash
-python converter.py --input video.mkv --quality high
+./convert.sh --input video.mkv --quality high
 ```
 
 ### Issue: French audio not default
-**Solution**: The converter automatically detects French audio. If your file doesn't have French audio:
-1. Check available audio tracks: `ffprobe input.mkv`
+**Solution**: The converter automatically detects French audio. Check with:
+```bash
+./check_streams.sh output/video_converted.mp4
+```
+If your file doesn't have French audio:
+1. Check available audio tracks in source: `ffprobe input.mkv`
 2. The converter will log a warning if no French audio is found
 3. All audio tracks are still included in the output
 
@@ -263,7 +308,7 @@ python converter.py --input video.mkv --quality high
 **Solution**: Use a faster preset or enable GPU acceleration
 ```bash
 # Faster encoding (lower quality/larger file)
-python converter.py --input video.mkv --preset faster
+./convert.sh --input video.mkv --preset faster
 
 # Enable GPU acceleration (edit config.py)
 USE_GPU_ACCELERATION = True
@@ -272,13 +317,13 @@ USE_GPU_ACCELERATION = True
 ### Issue: File size too large
 **Solution**: Increase CRF value
 ```bash
-python converter.py --input video.mkv --crf 28
+./convert.sh --input video.mkv --crf 28
 ```
 
 ### Issue: Audio out of sync
 **Solution**: This is rare but if it occurs, the issue is usually with the source file. Try re-encoding with:
 ```bash
-python converter.py --input video.mkv --preset slow
+./convert.sh --input video.mkv --preset slow
 ```
 
 ## Performance Tips
@@ -290,6 +335,13 @@ python converter.py --input video.mkv --preset slow
 - **Keep source files on same drive** as output to avoid I/O bottlenecks
 
 ## Technical Details
+
+### How the Wrapper Script Works
+
+The [convert.sh](convert.sh) script:
+1. Activates the Python virtual environment (`venv/`)
+2. Calls `converter.py` with all passed arguments
+3. Ensures consistent Python dependencies
 
 ### FFmpeg Command
 
@@ -304,7 +356,8 @@ ffmpeg -i input.mkv \
   -b:a 192k \
   -ac 2 \
   -map 0:v:0 \
-  -map 0:a:0 -map 0:a:1 \
+  -map 0:a \
+  -c:s mov_text \
   -disposition:a:0 default \
   -metadata:s:a:0 language=fra \
   -movflags +faststart \
@@ -314,12 +367,20 @@ ffmpeg -i input.mkv \
 
 ### Audio Stream Mapping
 
-1. Probe all audio streams
-2. Find French audio (language=fra/fre/fr)
-3. Map French audio first: `-map 0:a:X`
-4. Set as default: `-disposition:a:0 default`
-5. Set French metadata: `-metadata:s:a:0 language=fra`
-6. Map remaining audio tracks
+1. Probe all audio streams using FFprobe
+2. Find French audio (language=fra/fre/fr/french)
+3. Reorder streams with French audio first
+4. Set French as default: `-disposition:a:0 default`
+5. Preserve language metadata: `-metadata:s:a:0 language=fra`
+6. Map all remaining audio tracks with their metadata
+
+### Stream Verification
+
+The [check_streams.sh](check_streams.sh) script uses FFprobe to display:
+- Video codec, resolution, and frame rate
+- All audio tracks with language codes and codec info
+- All subtitle tracks with language codes
+- Which tracks are marked as default
 
 ## License
 
